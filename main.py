@@ -1,4 +1,4 @@
-import array as arr
+from array import *
 from PIL import Image
 import numpy as np
 
@@ -98,18 +98,55 @@ def getBestPixel(true_color, mapping):
     
     return best_approximate
 
+def ByteClamp(a, b):
+    sum = a + b;
 
+    if sum > 255:
+        return 255
+    else:
+        if sum < 0:
+            return 0
+        else:
+            return sum
+
+def give_error(pixels, x, y, red, green, blue, proportion):
+    if x >= 0 and y >= 0 and x < width and y < height:
+        old = pixels[x, y];
+        r = int(ByteClamp(old[0], (red * proportion) / 2**4))
+        g = int(ByteClamp(old[1], (green * proportion) / 2**4))
+        b = int(ByteClamp(old[2], (blue * proportion) / 2**4))
+        pixels[x, y] = (r, g, b)
+
+def floyd_steinberg(width, height, pixels):
+    for x in range(width):
+        for y in range (height):
+            oldPixel = pixels[x, y]
+            newPixel = getBestPixel(pixels[x, y], mappings)
+            pixels[x, y] = newPixel
+
+            error_r = oldPixel[0] - newPixel[0]
+            error_g = oldPixel[1] - newPixel[1]
+            error_b = oldPixel[2] - newPixel[2]
+
+            give_error(pixels, x + 1, y, error_r, error_g, error_b, 7)
+            give_error(pixels, x - 1, y + 1, error_r, error_g, error_b, 3)
+            give_error(pixels, x, y + 1, error_r, error_g, error_b, 5)
+            give_error(pixels, x + 1, y + 1, error_r, error_g, error_b, 1)
+        
 try: 
     img  = Image.open("test.png")
     width, height = img.size
     pixels = img.load()
 
-    for x in range (width):
-        for y in range (height):
-            bestcolor = getBestPixel(pixels[x, y], mappings)
-            # print(bestcolor)
-            pixels[x, y] = bestcolor
+    # for x in range (width):
+    #     for y in range (height):
+    #         bestcolor = getBestPixel(pixels[x, y], mappings)
+    #         # print(bestcolor)
+    #         pixels[x, y] = bestcolor
 
+    # img.save("out.png")
+
+    floyd_steinberg(width, height, pixels)
     img.save("out.png")
 
 except IOError:
